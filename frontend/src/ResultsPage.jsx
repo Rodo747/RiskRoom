@@ -569,7 +569,7 @@ function RightSidebar({ m, data }) {
     </div>
   );
 }
-import { API_BASE } from "./config.js";
+
 // Main page
 export default function ResultsPage({ simData, onNav }) {
   const hasRealData = simData && !simData.isDemo;
