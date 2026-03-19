@@ -68,7 +68,7 @@ RiskRoom acts as a **digital war room** where:
 
 ##  Architecture
 
-```text
+
 React Dashboard (Vercel)
         ↓
 FastAPI Backend (Railway)

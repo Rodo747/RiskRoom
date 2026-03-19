@@ -18,25 +18,25 @@ import httpx
 # Load environment variables
 load_dotenv()
 
-# ─── Configuration ────────────────────────────────────────────────────────────
-
+# Configuration constants
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-AIRIA_API_URL = os.getenv("AIRIA_API_URL", "")
-AIRIA_API_KEY = os.getenv("AIRIA_API_KEY", "")
+AIRIA_PIPELINE_ID = os.getenv("AIRIA_PIPELINE_ID", "")
+AIRIA_PIPELINE_VERSION = os.getenv("AIRIA_PIPELINE_VERSION", "0.02")
 
+# Initialize FastAPI application
 app = FastAPI(title="RiskRoom Monte Carlo Engine", version="1.0.0")
 
+# CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, use FRONTEND_URL
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ─── Input Models ───────────────────────────────────────────────────────────
-
+# Input data models for API endpoints
 class SimulationInput(BaseModel):
     precio: float = 299.0
     costo_unitario: float = 120.0
@@ -63,7 +63,7 @@ class ProductDocInput(BaseModel):
     product_description: Optional[str] = None
 
 class SlackNotifyInput(BaseModel):
-    decision: str  # "approved" or "rejected"
+    decision: str
     roi_esperado: float
     prob_exito: float
     nivel_riesgo: str
@@ -82,13 +82,14 @@ class CompanyDocInput(BaseModel):
     file_type: str
     company_id: Optional[str] = None
 
-# ─── Core Monte Carlo Logic ──────────────────────────────────────────────────
 
+# Core Monte Carlo simulation logic
 def run_monte_carlo(params: SimulationInput) -> dict:
-    # Use os.urandom for true random seed (not predictable)
+    # Use os.urandom for true random seed
     np.random.seed(int.from_bytes(os.urandom(4), 'big'))
     n = params.iteraciones
 
+    # Extract simulation parameters
     precio = params.precio
     costo_unit = params.costo_unitario
     costo_log = params.costo_logistico
@@ -98,43 +99,44 @@ def run_monte_carlo(params: SimulationInput) -> dict:
     riesgo_reg = params.riesgo_regulatorio
     tam_mercado = params.tamano_mercado_estimado
 
-    # Apply shock modifiers
+    # Apply macroeconomic shock modifiers
     if params.shock_macro:
         elasticidad *= 1.35
         agresividad = min(agresividad * 1.2, 1.0)
 
+    # Apply competitive price war modifiers
     if params.competitor_price_war:
         agresividad = min(agresividad * 1.8, 1.0)
         elasticidad *= 1.5
 
-    # Stochastic variables
+    # Generate stochastic variables using probability distributions
     precio_efectivo = np.random.normal(precio, precio * 0.05, n)
     elasticidad_real = np.random.normal(elasticidad, 0.2, n)
     penetracion_base = 0.04 + (presupuesto_mkt / 10_000_000) * 0.06
     penetracion = np.random.beta(2, 20, n) * penetracion_base * 25
 
-    # Competitive erosion
+    # Calculate competitive erosion on market penetration
     erosion_competitiva = np.random.normal(agresividad * 0.3, 0.05, n)
     penetracion_ajustada = penetracion * (1 - erosion_competitiva)
     penetracion_ajustada = np.clip(penetracion_ajustada, 0.001, 0.25)
 
-    # Regulatory impact (random binary events)
+    # Calculate regulatory risk impact
     evento_regulatorio = np.random.random(n) < riesgo_reg
     factor_regulatorio = np.where(evento_regulatorio,
                                    np.random.uniform(0.4, 0.75, n), 1.0)
 
-    # Units sold
+    # Calculate total units sold
     unidades_vendidas = (tam_mercado * penetracion_ajustada * factor_regulatorio).astype(int)
     unidades_vendidas = np.maximum(unidades_vendidas, 0)
 
-    # Financials
+    # Calculate financial metrics
     margen_unit = precio_efectivo - costo_unit - costo_log
     ingresos = precio_efectivo * unidades_vendidas
     costos_totales = (costo_unit + costo_log) * unidades_vendidas + presupuesto_mkt
     utilidad = ingresos - costos_totales
     roi = (utilidad / costos_totales) * 100
 
-    # Risk metrics
+    # Calculate risk metrics
     prob_exito = float(np.mean(roi > 0) * 100)
     roi_esperado = float(np.mean(roi))
     roi_mediana = float(np.median(roi))
@@ -143,7 +145,7 @@ def run_monte_carlo(params: SimulationInput) -> dict:
     var_5 = float(np.percentile(utilidad, 5))
     std_roi = float(np.std(roi))
 
-    # Distribution histogram
+    # Generate ROI distribution histogram
     hist, bin_edges = np.histogram(roi, bins=40)
     distribution = [
         {"roi": float(round((bin_edges[i] + bin_edges[i+1]) / 2, 1)),
@@ -152,7 +154,7 @@ def run_monte_carlo(params: SimulationInput) -> dict:
         for i in range(len(hist))
     ]
 
-    # Scenario breakdown
+    # Calculate scenario breakdown
     escenarios = {
         "optimista": {"prob": float(np.mean(roi > 30) * 100), "roi_promedio": float(np.mean(roi[roi > 30])) if np.any(roi > 30) else 0},
         "neutral": {"prob": float(np.mean((roi >= 0) & (roi <= 30)) * 100), "roi_promedio": float(np.mean(roi[(roi >= 0) & (roi <= 30)])) if np.any((roi >= 0) & (roi <= 30)) else 0},
@@ -178,28 +180,25 @@ def run_monte_carlo(params: SimulationInput) -> dict:
         "params_usados": params.dict(),
     }
 
-# ─── Endpoints ───────────────────────────────────────────────────────────────
 
+# API endpoints
 @app.get("/")
 def root():
     return {"status": "RiskRoom Monte Carlo Engine running", "version": "1.0.0"}
 
 @app.post("/simulate")
 def simulate(params: SimulationInput):
-    """Run 500 Monte Carlo simulations and return raw distribution."""
     results = run_monte_carlo(params)
     return {"status": "success", "data": results}
 
 @app.post("/analyze")
 def analyze(params: SimulationInput):
-    """Analyze simulation results and classify risk level."""
     results = run_monte_carlo(params)
     metricas = results["metricas"]
 
-    # Risk classification
+    # Risk classification based on ROI and success probability
     roi_e = metricas["roi_esperado"]
     prob = metricas["prob_exito"]
-    var = metricas["value_at_risk"]
 
     if prob >= 70 and roi_e >= 25:
         nivel_riesgo = "BAJO"
@@ -218,7 +217,7 @@ def analyze(params: SimulationInput):
         color_riesgo = "red"
         recomendacion = "No ejecutar con supuestos actuales. Requiere reestructuracion."
 
-    # Heatmap risk matrix (competitive vs regulatory)
+    # Generate risk heatmap
     heatmap = []
     for comp in [0.1, 0.3, 0.5, 0.7, 0.9]:
         for reg in [0.1, 0.3, 0.5, 0.7, 0.9]:
@@ -248,9 +247,7 @@ def analyze(params: SimulationInput):
 
 @app.post("/optimize")
 def optimize(params: SimulationInput):
-    """Generate 5 strategic variants and select the dominant one."""
-    base = run_monte_carlo(params)
-
+    # Define strategic variants
     variantes = []
 
     configs = [
@@ -286,6 +283,7 @@ def optimize(params: SimulationInput):
         },
     ]
 
+    # Run simulation for each variant
     for cfg in configs:
         p_dict = params.dict()
         p_dict.update(cfg["params_delta"])
@@ -293,6 +291,7 @@ def optimize(params: SimulationInput):
         result = run_monte_carlo(p)
         m = result["metricas"]
 
+        # Calculate composite score
         score = (m["prob_exito"] * 0.4) + (m["roi_esperado"] * 0.35) + (m["worst_case_roi"] * 0.25)
 
         variantes.append({
@@ -304,10 +303,12 @@ def optimize(params: SimulationInput):
             "params": p_dict,
         })
 
+    # Sort by score and identify dominant strategy
     variantes_sorted = sorted(variantes, key=lambda x: x["score"], reverse=True)
     dominante = variantes_sorted[0]
     original = next(v for v in variantes if v["tag"] == "base")
 
+    # Calculate improvement metrics
     reduccion_riesgo = original["metricas"]["prob_exito"] - (100 - dominante["metricas"]["prob_exito"])
     mejora_roi = dominante["metricas"]["roi_esperado"] - original["metricas"]["roi_esperado"]
 
@@ -326,14 +327,11 @@ def optimize(params: SimulationInput):
         }
     }
 
-# ─── AI Insight Endpoint ─────────────────────────────────────────────────────
 
+# AI Insight endpoint
 @app.post("/insight")
 async def get_insight(input: InsightInput):
-    """Generate AI insight using Claude API (called from backend, not frontend)."""
-
     if not ANTHROPIC_API_KEY:
-        # Fallback insight if no API key
         return {
             "status": "success",
             "insight": f"Analisis automatizado: ROI esperado {input.metricas.get('roi_esperado', 'N/A')}%, probabilidad de exito {input.metricas.get('prob_exito', 'N/A')}%. Nivel de riesgo: {input.nivel_riesgo}. Se recomienda revisar los factores de riesgo antes de proceder."
@@ -384,15 +382,14 @@ Proporciona un analisis ejecutivo en 3 oraciones directas y cuantitativas. Escri
             "insight": f"Analisis: ROI esperado {input.metricas.get('roi_esperado')}% con {input.metricas.get('prob_exito')}% de exito. Nivel de riesgo {input.nivel_riesgo}. Se recomienda evaluacion detallada."
         }
 
-# ─── Slack Notification Endpoint ─────────────────────────────────────────────
 
+# Slack notification endpoint
 @app.post("/notify-slack")
 async def notify_slack(input: SlackNotifyInput):
-    """Send notification to Slack via webhook."""
-
     if not SLACK_WEBHOOK_URL:
         return {"status": "success", "message": "Slack webhook not configured (skipped)"}
 
+    # Prepare notification payload
     decision_emoji = ":white_check_mark:" if input.decision == "approved" else ":x:"
     decision_text = "APROBADO" if input.decision == "approved" else "RECHAZADO"
     color = "#00b8a0" if input.decision == "approved" else "#e03020"
@@ -424,12 +421,10 @@ async def notify_slack(input: SlackNotifyInput):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# ─── PDF Generation Endpoint ────────────────────────────────────────────────
 
+# PDF generation endpoint
 @app.post("/generate-pdf")
 async def generate_pdf(input: PDFGenerateInput):
-    """Generate PDF report using ReportLab."""
-
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
@@ -437,9 +432,11 @@ async def generate_pdf(input: PDFGenerateInput):
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
+    # Create PDF document
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.75*inch, bottomMargin=0.75*inch)
 
+    # Define styles
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         'CustomTitle',
@@ -461,14 +458,14 @@ async def generate_pdf(input: PDFGenerateInput):
 
     elements = []
 
-    # Title
+    # Add title and metadata
     decision_title = "EXECUTIVE APPROVAL REPORT" if input.decision == "approved" else "REJECTION ANALYSIS REPORT"
     elements.append(Paragraph(f"RiskRoom: {decision_title}", title_style))
     elements.append(Paragraph(f"Product: {input.product_name}", body_style))
     elements.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", body_style))
     elements.append(Spacer(1, 0.3*inch))
 
-    # Risk Level
+    # Add risk classification
     risk_color = colors.HexColor('#00cc66') if input.analisis.get('nivel_riesgo') == 'BAJO' else \
                  colors.HexColor('#dd8800') if input.analisis.get('nivel_riesgo') == 'MEDIO' else \
                  colors.HexColor('#ff4422')
@@ -478,7 +475,7 @@ async def generate_pdf(input: PDFGenerateInput):
     elements.append(Paragraph(f"Recommendation: {input.analisis.get('recomendacion', 'N/A')}", body_style))
     elements.append(Spacer(1, 0.2*inch))
 
-    # Metrics Table
+    # Add metrics table
     elements.append(Paragraph("KEY METRICS", heading_style))
 
     m = input.metricas
@@ -512,19 +509,19 @@ async def generate_pdf(input: PDFGenerateInput):
     elements.append(table)
     elements.append(Spacer(1, 0.3*inch))
 
-    # AI Insight
+    # Add AI insight if available
     if input.insight:
         elements.append(Paragraph("AI ANALYSIS", heading_style))
         elements.append(Paragraph(input.insight, body_style))
         elements.append(Spacer(1, 0.2*inch))
 
-    # Decision
+    # Add executive decision
     elements.append(Paragraph("EXECUTIVE DECISION", heading_style))
     decision_text = "APPROVED - Roadmap activated, notifications sent." if input.decision == "approved" else "REJECTED - Launch cancelled, report generated."
     elements.append(Paragraph(decision_text, body_style))
     elements.append(Spacer(1, 0.2*inch))
 
-    # Footer
+    # Add footer
     elements.append(Spacer(1, 0.5*inch))
     elements.append(Paragraph("RiskRoom - Strategic Decisions, Quantified", ParagraphStyle(
         'Footer',
@@ -541,6 +538,7 @@ async def generate_pdf(input: PDFGenerateInput):
         alignment=TA_CENTER
     )))
 
+    # Build and return PDF
     doc.build(elements)
     buffer.seek(0)
 
@@ -552,53 +550,111 @@ async def generate_pdf(input: PDFGenerateInput):
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
-# ─── Airia Proxy Endpoint (for future Airia integration) ─────────────────────
 
-@app.post("/airia/run")
-async def run_airia_pipeline(params: SimulationInput):
-    """Proxy endpoint to call Airia pipeline when deployed."""
+# Airia pipeline proxy endpoint
+@app.post("/run-analysis")
+async def run_analysis(params: SimulationInput):
+    # Step 1: Run Monte Carlo locally
+    monte_carlo_results = run_monte_carlo(params)
+    metricas = monte_carlo_results["metricas"]
 
-    if not AIRIA_API_URL or not AIRIA_API_KEY:
-        return {
-            "status": "error",
-            "message": "Airia not configured. Running local Monte Carlo only.",
-            "data": run_monte_carlo(params)
+    # Step 2: Classify risk locally as fallback
+    roi_e = metricas["roi_esperado"]
+    prob  = metricas["prob_exito"]
+    if prob >= 70 and roi_e >= 25:
+        nivel_riesgo  = "BAJO"
+        recomendacion = "Estrategia viable. Proceder con lanzamiento controlado."
+    elif prob >= 50 and roi_e >= 10:
+        nivel_riesgo  = "MEDIO"
+        recomendacion = "Estrategia aceptable. Revisar pricing y mitigar riesgo regulatorio."
+    elif prob >= 35:
+        nivel_riesgo  = "ALTO"
+        recomendacion = "Estrategia riesgosa. Optimizar supuestos antes de ejecutar."
+    else:
+        nivel_riesgo  = "CRITICO"
+        recomendacion = "No ejecutar con supuestos actuales. Requiere reestructuracion."
+
+    # Step 3: Generate heatmap
+    heatmap = []
+    for comp in [0.1, 0.3, 0.5, 0.7, 0.9]:
+        for reg in [0.1, 0.3, 0.5, 0.7, 0.9]:
+            p = params.model_copy()
+            p.agresividad_competitiva = comp
+            p.riesgo_regulatorio = reg
+            r = run_monte_carlo(p)
+            heatmap.append({
+                "competitivo": comp,
+                "regulatorio": reg,
+                "roi": r["metricas"]["roi_esperado"],
+                "prob_exito": r["metricas"]["prob_exito"],
+            })
+
+    # Step 4: Call Airia pipeline
+    airia_insight = None
+    if AIRIA_API_KEY and AIRIA_PIPELINE_ID:
+        try:
+            airia_input = f"""Analiza el lanzamiento de este producto:
+
+Producto: {params.product_description or 'Smartwatch fitness premium'}
+Precio: ${params.precio}
+Costo unitario: ${params.costo_unitario}
+Mercado estimado: {params.tamano_mercado_estimado} unidades
+Presupuesto marketing: ${params.presupuesto_marketing}
+Riesgo regulatorio: {params.riesgo_regulatorio * 100}%
+Agresividad competitiva: {params.agresividad_competitiva * 100}%
+
+Resultados Monte Carlo (500 simulaciones):
+- ROI esperado: {metricas['roi_esperado']}%
+- Probabilidad de exito: {metricas['prob_exito']}%
+- Peor caso (P5): {metricas['worst_case_roi']}%
+- Mejor caso (P95): {metricas['best_case_roi']}%
+- Value at Risk: ${metricas['value_at_risk']}M
+- Nivel de riesgo: {nivel_riesgo}
+
+Proporciona un analisis ejecutivo estrategico con recomendaciones concretas."""
+
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"https://api.airia.com/v1/pipelines/{AIRIA_PIPELINE_ID}/execute",
+                    headers={
+                        "Authorization": f"Bearer {AIRIA_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "input": airia_input,
+                        "version": AIRIA_PIPELINE_VERSION,
+                    },
+                    timeout=60.0,
+                )
+                if response.status_code == 200:
+                    airia_data = response.json()
+                    # Airia returns output in different fields depending on pipeline
+                    airia_insight = (
+                        airia_data.get("output") or
+                        airia_data.get("result") or
+                        airia_data.get("response") or
+                        airia_data.get("content") or
+                        str(airia_data)
+                    )
+                else:
+                    print(f"Airia error: {response.status_code} - {response.text}")
+        except Exception as e:
+            print(f"Airia call failed: {e}")
+
+    return {
+        "status": "success",
+        "data": {
+            **monte_carlo_results,
+            "analisis": {
+                "nivel_riesgo": nivel_riesgo,
+                "recomendacion": recomendacion,
+            },
+            "heatmap": heatmap,
+            "insight": airia_insight or recomendacion,
+            "airia_connected": airia_insight is not None,
         }
-
-    try:
-        async with httpx.AsyncClient() as client:
-            # This will be configured when Airia is deployed
-            response = await client.post(
-                f"{AIRIA_API_URL}/v1/pipelines/run",
-                headers={
-                    "Authorization": f"Bearer {AIRIA_API_KEY}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "pipeline_id": "riskroom_analysis",
-                    "input": params.dict()
-                },
-                timeout=60.0
-            )
-
-            if response.status_code == 200:
-                return {"status": "success", "data": response.json()}
-            else:
-                # Fallback to local simulation
-                return {
-                    "status": "partial",
-                    "message": f"Airia error {response.status_code}, using local fallback",
-                    "data": run_monte_carlo(params)
-                }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e),
-            "data": run_monte_carlo(params)
-        }
-
-# ─── Health Check ───────────────────────────────────────────────────────────
-
+    }
+# Health check endpoint
 @app.get("/health")
 def health():
     return {
@@ -611,10 +667,9 @@ def health():
         }
     }
 
+# Company document upload endpoint
 @app.post("/company-docs")
 async def upload_company_doc(input: CompanyDocInput):
-    """Receive company document metadata. In production, this would process the actual file."""
-    # For now, just acknowledge receipt - file processing would happen here
     return {
         "status": "success",
         "message": f"Document '{input.filename}' received. Processing simulation pending Airia integration.",
@@ -626,9 +681,9 @@ async def upload_company_doc(input: CompanyDocInput):
         }
     }
 
+# Product document upload endpoint
 @app.post("/product-doc")
 async def upload_product_doc(input: ProductDocInput):
-    """Receive product document metadata for simulation."""
     return {
         "status": "success",
         "message": f"Product document '{input.filename}' received for analysis.",
@@ -640,6 +695,12 @@ async def upload_product_doc(input: ProductDocInput):
         }
     }
 
+# Application entry point
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+#venv\Scripts\activate
+#uvicorn main:app --reload --port 8000
+#npm run dev
