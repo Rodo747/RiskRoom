@@ -22,6 +22,8 @@ load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+AIRIA_API_KEY = os.getenv("AIRIA_API_KEY", "")
+AIRIA_API_URL = os.getenv("AIRIA_API_URL", "https://api.airia.ai")
 AIRIA_PIPELINE_ID = os.getenv("AIRIA_PIPELINE_ID", "87fc9c1f-097d-46b9-a8f4-2f16bb9625aa")
 AIRIA_PIPELINE_VERSION = os.getenv("AIRIA_PIPELINE_VERSION", "0.02")
 
