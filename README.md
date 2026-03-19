@@ -66,7 +66,7 @@ RiskRoom acts as a **digital war room** where:
 ---
 
 
-##  Architecture
+## Architecture
 
 React Dashboard (Vercel)
 ↓
@@ -75,26 +75,26 @@ FastAPI Backend (Railway)
 Airia Agent Pipeline
 ↓
 ┌──────────────────────────────────────────────┐
-│ 1. Data Ingestion Agent (Haiku 4.5) │
-│ └─ Combina PDF + company data │
-│ │
-│ 2. Orchestrator Agent (Sonnet 4.6) │
-│ └─ Coordina todo el flujo │
-│ │
-│ ──────── PARALLEL INTELLIGENCE ─────────── │
-│ 3. Market Intelligence (Haiku 4.5) │ ← Web Search
-│ 4. Competitor Adversary (Haiku 4.5) │ ← Web Search
-│ 5. Regulatory Risk (Haiku 4.5) │ ← Web Search
-│ ────────────────────────────────────────── │
-│ │
-│ 6. Pricing Optimizer (Haiku 4.5) │ ← Web Search
-│ │
-│ 7. Risk Analyst (Sonnet 4.6) │ ← Monte Carlo
-│ │
-│ 8. Mitigation Strategist (Haiku 4.5) │
-│ │
-│ 9. Multi-channel Output Agent (Haiku 4.5) │
-│ └─ PDF + Slack + Email + Dashboard │
+│ 1. Data Ingestion Agent (Haiku 4.5)          │
+│ └─ Combina PDF + company data                │
+│                                              │
+│ 2. Orchestrator Agent (Sonnet 4.6)           │
+│ └─ Coordina todo el flujo                    │
+│                                              │
+│ ──────── PARALLEL INTELLIGENCE ───────────   │
+│ 3. Market Intelligence (Haiku 4.5)   ← Web   │
+│ 4. Competitor Adversary (Haiku 4.5)  ← Web   │
+│ 5. Regulatory Risk (Haiku 4.5)       ← Web   │
+│ ──────────────────────────────────────────   │
+│                                              │
+│ 6. Pricing Optimizer (Haiku 4.5)     ← Web   │
+│                                              │
+│ 7. Risk Analyst (Sonnet 4.6)        ← Monte  │
+│                                              │
+│ 8. Mitigation Strategist (Haiku 4.5)         │
+│                                              │
+│ 9. Multi-channel Output Agent (Haiku 4.5)    │
+│ └─ PDF + Slack + Email + Dashboard           │
 └──────────────────────────────────────────────┘
 ↓
 Monte Carlo Engine (500 iterations, NumPy via FastAPI)
@@ -102,7 +102,7 @@ Monte Carlo Engine (500 iterations, NumPy via FastAPI)
 Results → Dashboard → HITL Decision
 ↓
 APPROVE → Mitigation + PDF + Notifications
-REJECT → Closure Report + Notifications
+REJECT  → Closure Report + Notifications
 
 ---
 
@@ -137,13 +137,6 @@ REJECT → Closure Report + Notifications
 
 ---
 
-##  Setup — Backend (Python)
-
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
 
 **Available endpoints:**
 | Method | Endpoint | Description |
