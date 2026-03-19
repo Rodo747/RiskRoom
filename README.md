@@ -66,20 +66,21 @@ RiskRoom acts as a **digital war room** where:
 ---
 
 
-## Architecture
+## 🏗 Architecture
 
+```text
 React Dashboard (Vercel)
-↓
+        ↓
 FastAPI Backend (Railway)
-↓
+        ↓
 Airia Agent Pipeline
-↓
+        ↓
 ┌──────────────────────────────────────────────┐
 │ 1. Data Ingestion Agent (Haiku 4.5)          │
-│ └─ Combina PDF + company data                │
+│    └─ Combina PDF + company data            │
 │                                              │
 │ 2. Orchestrator Agent (Sonnet 4.6)           │
-│ └─ Coordina todo el flujo                    │
+│    └─ Coordina todo el flujo                │
 │                                              │
 │ ──────── PARALLEL INTELLIGENCE ───────────   │
 │ 3. Market Intelligence (Haiku 4.5)   ← Web   │
@@ -94,16 +95,15 @@ Airia Agent Pipeline
 │ 8. Mitigation Strategist (Haiku 4.5)         │
 │                                              │
 │ 9. Multi-channel Output Agent (Haiku 4.5)    │
-│ └─ PDF + Slack + Email + Dashboard           │
+│    └─ PDF + Slack + Email + Dashboard       │
 └──────────────────────────────────────────────┘
-↓
+        ↓
 Monte Carlo Engine (500 iterations, NumPy via FastAPI)
-↓
+        ↓
 Results → Dashboard → HITL Decision
-↓
+        ↓
 APPROVE → Mitigation + PDF + Notifications
 REJECT  → Closure Report + Notifications
-
 ---
 
 
