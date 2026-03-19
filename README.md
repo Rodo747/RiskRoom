@@ -68,7 +68,7 @@ RiskRoom acts as a **digital war room** where:
 
 ##  Architecture
 
-
+```text
 React Dashboard (Vercel)
         ↓
 FastAPI Backend (Railway)
@@ -105,7 +105,7 @@ Results → Dashboard → HITL Decision
 APPROVE → Mitigation + PDF + Notifications
 REJECT  → Closure Report + Notifications
 ---
-
+```
 ---
 ##  The 9 AI Agents
 
