@@ -654,6 +654,7 @@ Proporciona un analisis ejecutivo estrategico con recomendaciones concretas en e
 
     except Exception as e:
         print(f"Airia call failed: {e}")
+        print(f"Airia traceback: {traceback.format_exc()}")
         return {"status": "partial", "data": {**base_result, "insight": recomendacion, "airia_used": False, "airia_error": str(e)}}
 # Health check endpoint
 @app.get("/health")
