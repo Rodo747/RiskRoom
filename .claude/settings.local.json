@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(start \"\" \"D:\\\\Rodo\\\\Dev\\\\RiskRoom\\\\image\\\\dashboard.png\" && start \"\" \"D:\\\\Rodo\\\\Dev\\\\RiskRoom\\\\image\\\\dashboard2.png\")",
+      "Bash(dir:*)"
+    ]
+  }
+}
