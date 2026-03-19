@@ -2,12 +2,12 @@
 ## Strategic Decisions. Quantified.
 ### *Simulate the future. Decide with certainty.*
 
-> RiskRoom is an advanced multi-agent AI system that enables companies to simulate, analyze, and validate strategic decisions **before launching products into uncertain markets**.  
-> It combines probabilistic modeling (Monte Carlo), real-time market intelligence, and coordinated AI agents to transform uncertainty into actionable insight.
+RiskRoom is an advanced multi-agent AI system that enables companies to simulate, analyze, and validate strategic decisions **before launching products into uncertain markets**.  
+It combines probabilistic modeling (Monte Carlo), real-time market intelligence, and coordinated AI agents to transform uncertainty into actionable insight.
 
 ---
 
-## 🎯 The Problem
+##  The Problem
 
 Launching a product into a new market is one of the riskiest decisions a company can make.
 
@@ -30,7 +30,7 @@ They fail to anticipate:
 
 ---
 
-## 💡 The Solution
+##  The Solution
 
 RiskRoom creates a **strategic simulation environment** powered by AI agents.
 
@@ -48,13 +48,13 @@ Instead of predicting a single outcome, it explores **hundreds of possible futur
 
 ---
 
-## 🚀 Mission
+##  Mission
 
 Empower companies to **reduce uncertainty** and **make high-impact decisions with confidence** by simulating real-world complexity before execution.
 
 ---
 
-## 🧠 Core Concept
+##  Core Concept
 
 RiskRoom acts as a **digital war room** where:
 - AI agents gather intelligence
@@ -65,59 +65,66 @@ RiskRoom acts as a **digital war room** where:
 
 ---
 
-## 🏗 Architecture
 
----
+##  Architecture
 
-## 🏗 Architecture
-
-```
 React Dashboard (Vercel)
-        ↓
+↓
 FastAPI Backend (Railway)
-        ↓
+↓
 Airia Agent Pipeline
-        ↓
-┌─────────────────────────────────────────────┐
-│  1. Product Document Analyzer  (Haiku 4.5)  │
-│  2. Internal Data Agent        (Haiku 4.5)  │
-│  3. Orchestrator               (Sonnet 4.6) │
-│  4. External Intelligence      (Sonnet 4.6) │ ← Brave MCP web search
-│  5. Pricing Optimizer          (Haiku 4.5)  │ ← Brave MCP web search
-│  6. Risk Analyst               (Sonnet 4.6) │ ← Calls Monte Carlo API
-│  7. Mitigation Strategist      (Haiku 4.5)  │
-└─────────────────────────────────────────────┘
-        ↓
-Monte Carlo Engine (500 iterations, NumPy)
-        ↓
+↓
+┌──────────────────────────────────────────────┐
+│ 1. Data Ingestion Agent (Haiku 4.5) │
+│ └─ Combina PDF + company data │
+│ │
+│ 2. Orchestrator Agent (Sonnet 4.6) │
+│ └─ Coordina todo el flujo │
+│ │
+│ ──────── PARALLEL INTELLIGENCE ─────────── │
+│ 3. Market Intelligence (Haiku 4.5) │ ← Web Search
+│ 4. Competitor Adversary (Haiku 4.5) │ ← Web Search
+│ 5. Regulatory Risk (Haiku 4.5) │ ← Web Search
+│ ────────────────────────────────────────── │
+│ │
+│ 6. Pricing Optimizer (Haiku 4.5) │ ← Web Search
+│ │
+│ 7. Risk Analyst (Sonnet 4.6) │ ← Monte Carlo
+│ │
+│ 8. Mitigation Strategist (Haiku 4.5) │
+│ │
+│ 9. Multi-channel Output Agent (Haiku 4.5) │
+│ └─ PDF + Slack + Email + Dashboard │
+└──────────────────────────────────────────────┘
+↓
+Monte Carlo Engine (500 iterations, NumPy via FastAPI)
+↓
 Results → Dashboard → HITL Decision
-        ↓
-APPROVE → PDF Report + Slack + Email
-REJECT  → Rejection Report + Slack + Email
-```
+↓
+APPROVE → Mitigation + PDF + Notifications
+REJECT → Closure Report + Notifications
 
 ---
 
 
-## 🤖 The 9 AI Agents
+##  The 9 AI Agents
 
 | # | Agent | Model | Role |
 |---|------|------|------|
-| 1 | **Data Ingestion Agent** | Haiku 4.5 | Combines product data + company summary into structured input |
-| 2 | **Product Document Analyzer** | Haiku 4.5 | Extracts key product info from PDF (features, target, value prop) |
-| 3 | **Internal Data Agent** | Haiku 4.5 | Retrieves company metrics (costs, revenue, historical performance) |
-| 4 | **Orchestrator** | Sonnet 4.6 | Coordinates all agents and manages execution flow |
-| 5 | **Market Intelligence Agent** | Haiku 4.5 | Retrieves market size, growth, trends, and demand signals |
-| 6 | **Competitor Adversary Agent** | Haiku 4.5 | Simulates competitor reactions and identifies threats |
-| 7 | **Regulatory Risk Agent** | Haiku 4.5 | Identifies legal barriers, compliance cost, and approval timelines |
-| 8 | **Pricing Optimizer Agent** | Haiku 4.5 | Recommends optimal pricing based on market + competition |
-| 9 | **Risk Analyst Agent** | Sonnet 4.6 | Combines ALL inputs + Monte Carlo → outputs Go/No-Go |
-|10 | **Mitigation Strategist Agent** | Haiku 4.5 | Designs risk mitigation strategy and execution plan |
+| 1 | **Data Ingestion Agent** | Haiku 4.5 | Combines product PDF + company summary into structured data |
+| 2 | **Orchestrator Agent** | Sonnet 4.6 | Central brain that coordinates all agents and workflow |
+| 3 | **Market Intelligence Agent** | Haiku 4.5 | Retrieves market size, trends, demand, and growth |
+| 4 | **Competitor Adversary Agent** | Haiku 4.5 | Analyzes competitors and simulates reactions |
+| 5 | **Regulatory Risk Agent** | Haiku 4.5 | Identifies legal barriers, compliance cost, and risks |
+| 6 | **Pricing Optimizer Agent** | Haiku 4.5 | Calculates optimal pricing strategy and ranges |
+| 7 | **Risk Analyst Agent** | Sonnet 4.6 | Combines ALL inputs + Monte Carlo → Go/No-Go decision |
+| 8 | **Mitigation Strategist Agent** | Haiku 4.5 | Designs mitigation plan and execution strategy |
+| 9 | **Multi-channel Output Agent** | Haiku 4.5 | Generates PDF + sends Slack, 
 
 ---
 
 
-## 📱 App Structure — 6 Screens
+##  App Structure — 6 Screens
 
 | Screen | Description |
 |--------|-------------|
@@ -130,7 +137,7 @@ REJECT  → Rejection Report + Slack + Email
 
 ---
 
-## ⚙️ Setup — Backend (Python)
+##  Setup — Backend (Python)
 
 ```bash
 cd backend
@@ -146,23 +153,6 @@ uvicorn main:app --reload --port 8000
 | `POST` | `/analyze` | Simulation + risk classification + heatmap (25 cells) |
 | `POST` | `/optimize` | Generates 5 strategic variants, selects dominant strategy |
 
-**Example request:**
-```json
-POST /analyze
-{
-  "precio": 299,
-  "costo_unitario": 89,
-  "costo_logistico": 22,
-  "presupuesto_marketing": 650000,
-  "elasticidad": 1.6,
-  "agresividad_competitiva": 0.65,
-  "riesgo_regulatorio": 0.35,
-  "tamano_mercado_estimado": 420000,
-  "shock_macro": false,
-  "competitor_price_war": false,
-  "iteraciones": 500
-}
-```
 
 ---
 
@@ -175,7 +165,7 @@ Password: demo1234
 
 ---
 
-## 📊 Metrics Calculated by the Engine
+##  Metrics Calculated by the Engine
 
 | Metric | Description |
 |--------|-------------|
@@ -190,7 +180,7 @@ Password: demo1234
 ---
 
 
-## 🏆 Track 2: Active Agents — Requirements Coverage
+##  Track 2: Active Agents — Requirements Coverage
 
 | Requirement | Implementation | Status |
 |-------------|---------------|--------|
@@ -202,7 +192,7 @@ Password: demo1234
 
 ---
 
-## 🔧 Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -220,7 +210,7 @@ Password: demo1234
 
 ---
 
-## 🗂 Project Structure
+##  Project Structure
 
 ```
 riskroom/
