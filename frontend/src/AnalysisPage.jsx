@@ -139,7 +139,7 @@ export default function AnalysisPage({ user, onSimResult }) {
 
     try {
       // Call backend analysis endpoint
-      const res = await fetch(`${API_BASE}/analyze`, {
+      const res = await fetch(`${API_BASE}/run-analysis`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...params, product_description: productText }),
