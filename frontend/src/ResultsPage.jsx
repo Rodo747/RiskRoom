@@ -569,7 +569,7 @@ function RightSidebar({ m, data }) {
     </div>
   );
 }
-
+import { API_BASE } from "./config.js";
 // Main page
 export default function ResultsPage({ simData, onNav }) {
   const hasRealData = simData && !simData.isDemo;
@@ -583,7 +583,7 @@ export default function ResultsPage({ simData, onNav }) {
   const [optData,     setOptData]     = useState(null);
   const [optimizing,  setOptimizing]  = useState(false);
   const [error,       setError]       = useState("");
-  const API_BASE = "/api";
+
 
   const projection = Array.from({ length: 12 }, (_,i) => ({
     month: `M${i+1}`,
