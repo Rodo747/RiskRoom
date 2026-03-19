@@ -615,14 +615,17 @@ Proporciona un analisis ejecutivo estrategico con recomendaciones concretas."""
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"https://api.airia.com/v1/pipelines/{AIRIA_PIPELINE_ID}/execute",
+                    f"https://api.airia.ai/v2/PipelineExecution/{airia_pipeline}",
                     headers={
-                        "Authorization": f"Bearer {AIRIA_API_KEY}",
-                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {airia_key}",
+                        "Content-Type":  "application/json",
                     },
                     json={
-                        "input": airia_input,
-                        "version": AIRIA_PIPELINE_VERSION,
+                        "input": {
+                            "company_summary": company_summary,
+                            "product_text":    product_text,
+                        },
+                        "version": airia_version,
                     },
                     timeout=60.0,
                 )
