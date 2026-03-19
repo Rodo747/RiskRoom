@@ -578,8 +578,8 @@ async def run_analysis(params: SimulationInput):
 
     # Step 3: Generate heatmap
     heatmap = []
-    for comp in [0.1, 0.3, 0.5, 0.7, 0.9]:
-        for reg in [0.1, 0.3, 0.5, 0.7, 0.9]:
+    for comp in [0.2, 0.5, 0.8]:
+        for reg in [0.2, 0.5, 0.8]:
             p = params.model_copy()
             p.agresividad_competitiva = comp
             p.riesgo_regulatorio = reg
