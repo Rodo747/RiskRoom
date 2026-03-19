@@ -14,7 +14,7 @@ const getEnvVar = (key, defaultValue) => {
 };
 
 // API base URL for backend calls
-export const API_BASE = getEnvVar('VITE_API_URL', 'http://localhost:8000');
+export const API_BASE = getEnvVar('https://riskroom-production.up.railway.app');
 
 // Enable/disable Anthropic AI integration
 export const ANTHROPIC_ENABLED = getEnvVar('VITE_ANTHROPIC_ENABLED', 'true') === 'true';
