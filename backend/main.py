@@ -22,7 +22,7 @@ load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-AIRIA_PIPELINE_ID = os.getenv("AIRIA_PIPELINE_ID", "")
+AIRIA_PIPELINE_ID = os.getenv("AIRIA_PIPELINE_ID", "87fc9c1f-097d-46b9-a8f4-2f16bb9625aa")
 AIRIA_PIPELINE_VERSION = os.getenv("AIRIA_PIPELINE_VERSION", "0.02")
 
 # Initialize FastAPI application
@@ -558,7 +558,7 @@ async def run_analysis(params: SimulationInput):
     monte_carlo_results = run_monte_carlo(params)
     metricas = monte_carlo_results["metricas"]
 
-    # Step 2: Classify risk locally as fallback
+    # Step 2: Classify risk
     roi_e = metricas["roi_esperado"]
     prob  = metricas["prob_exito"]
     if prob >= 70 and roi_e >= 25:
@@ -589,19 +589,28 @@ async def run_analysis(params: SimulationInput):
                 "prob_exito": r["metricas"]["prob_exito"],
             })
 
-    # Step 4: Call Airia pipeline
-    airia_insight = None
-    if AIRIA_API_KEY and AIRIA_PIPELINE_ID:
-        try:
-            airia_input = f"""Analiza el lanzamiento de este producto:
+    base_result = {
+        **monte_carlo_results,
+        "analisis": {
+            "nivel_riesgo":  nivel_riesgo,
+            "recomendacion": recomendacion,
+        },
+        "heatmap": heatmap,
+    }
 
-Producto: {params.product_description or 'Smartwatch fitness premium'}
+    # Step 4: Call Airia
+    if not AIRIA_API_KEY or not AIRIA_PIPELINE_ID:
+        return {"status": "success", "data": {**base_result, "insight": recomendacion, "airia_used": False}}
+
+    airia_input = f"""Analiza el lanzamiento de este producto:
+
+Producto: {params.product_description or 'Smartwatch fitness premium FitPulse Pro'}
 Precio: ${params.precio}
 Costo unitario: ${params.costo_unitario}
 Mercado estimado: {params.tamano_mercado_estimado} unidades
 Presupuesto marketing: ${params.presupuesto_marketing}
-Riesgo regulatorio: {params.riesgo_regulatorio * 100}%
-Agresividad competitiva: {params.agresividad_competitiva * 100}%
+Riesgo regulatorio: {params.riesgo_regulatorio * 100:.0f}%
+Agresividad competitiva: {params.agresividad_competitiva * 100:.0f}%
 
 Resultados Monte Carlo (500 simulaciones):
 - ROI esperado: {metricas['roi_esperado']}%
@@ -609,51 +618,41 @@ Resultados Monte Carlo (500 simulaciones):
 - Peor caso (P5): {metricas['worst_case_roi']}%
 - Mejor caso (P95): {metricas['best_case_roi']}%
 - Value at Risk: ${metricas['value_at_risk']}M
-- Nivel de riesgo: {nivel_riesgo}
+- Nivel de riesgo clasificado: {nivel_riesgo}
 
-Proporciona un analisis ejecutivo estrategico con recomendaciones concretas."""
+Proporciona un analisis ejecutivo estrategico con recomendaciones concretas en espanol."""
 
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"https://api.airia.ai/v2/PipelineExecution/{airia_pipeline}",
-                    headers={
-                        "X-API-KEY": airia_key,
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "userInput": f"{company_summary}\n\n{product_text}",
-                        "asyncOutput": False,
-                    },
-                    timeout=120.0
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://api.airia.ai/v2/PipelineExecution/{AIRIA_PIPELINE_ID}",
+                headers={
+                    "X-API-KEY": AIRIA_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "userInput": airia_input,
+                    "asyncOutput": False,
+                },
+                timeout=120.0
+            )
+            if response.status_code == 200:
+                airia_data = response.json()
+                airia_insight = (
+                    airia_data.get("output") or
+                    airia_data.get("result") or
+                    airia_data.get("response") or
+                    airia_data.get("content") or
+                    recomendacion
                 )
-                if response.status_code == 200:
-                    airia_data = response.json()
-                    # Airia returns output in different fields depending on pipeline
-                    airia_insight = (
-                        airia_data.get("output") or
-                        airia_data.get("result") or
-                        airia_data.get("response") or
-                        airia_data.get("content") or
-                        str(airia_data)
-                    )
-                else:
-                    print(f"Airia error: {response.status_code} - {response.text}")
-        except Exception as e:
-            print(f"Airia call failed: {e}")
+                return {"status": "success", "data": {**base_result, "insight": airia_insight, "airia_used": True}}
+            else:
+                print(f"Airia error: {response.status_code} - {response.text}")
+                return {"status": "partial", "data": {**base_result, "insight": recomendacion, "airia_used": False, "airia_error": f"{response.status_code}: {response.text[:200]}"}}
 
-    return {
-        "status": "success",
-        "data": {
-            **monte_carlo_results,
-            "analisis": {
-                "nivel_riesgo": nivel_riesgo,
-                "recomendacion": recomendacion,
-            },
-            "heatmap": heatmap,
-            "insight": airia_insight or recomendacion,
-            "airia_connected": airia_insight is not None,
-        }
-    }
+    except Exception as e:
+        print(f"Airia call failed: {e}")
+        return {"status": "partial", "data": {**base_result, "insight": recomendacion, "airia_used": False, "airia_error": str(e)}}
 # Health check endpoint
 @app.get("/health")
 def health():
