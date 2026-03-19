@@ -694,6 +694,35 @@ async def upload_product_doc(input: ProductDocInput):
             "received_at": datetime.now().isoformat()
         }
     }
+@app.get("/test-airia")
+async def test_airia():
+    airia_key      = os.getenv("AIRIA_API_KEY", "")
+    airia_pipeline = os.getenv("AIRIA_PIPELINE_ID", "87fc9c1f-097d-46b9-a8f4-2f16bb9625aa")
+    
+    if not airia_key:
+        return {"error": "No AIRIA_API_KEY found"}
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://api.airia.ai/v2/PipelineExecution/{airia_pipeline}",
+                headers={
+                    "X-API-KEY": airia_key,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "userInput": "Test connection. Analyze a smartwatch launch in California.",
+                    "asyncOutput": False,
+                },
+                timeout=60.0
+            )
+            return {
+                "status_code": response.status_code,
+                "response": response.text[:500],
+                "headers": dict(response.headers),
+            }
+    except Exception as e:
+        return {"error": str(e)}
 
 # Application entry point
 if __name__ == "__main__":
