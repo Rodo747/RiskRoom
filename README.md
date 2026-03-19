@@ -1,39 +1,71 @@
 # ⬡ RISKROOM
 ## Strategic Decisions. Quantified.
-### *Decide before the market decides for you.*
+### *Simulate the future. Decide with certainty.*
 
-> Internal corporate tool for probabilistic strategic simulation before launching a product into international markets. Combines Monte Carlo simulation, multi-agent AI orchestration via Airia, and real-time market data to quantify risk before it's too late.
-
-**Hackathon:** Airia AI Agents Challenge 2026 — Track 2: Active Agents
-**Demo Scenario:** FitPulse Pro Smartwatch — San Francisco Bay Area, California, USA
+> RiskRoom is an advanced multi-agent AI system that enables companies to simulate, analyze, and validate strategic decisions **before launching products into uncertain markets**.  
+> It combines probabilistic modeling (Monte Carlo), real-time market intelligence, and coordinated AI agents to transform uncertainty into actionable insight.
 
 ---
 
 ## 🎯 The Problem
 
-Companies launch products into international markets without structurally simulating:
+Launching a product into a new market is one of the riskiest decisions a company can make.
 
-- Competitive reaction
-- Regulatory risk
-- Demand variability
-- Price elasticity
-- Financial impact under uncertainty
+Yet most companies still rely on:
+- Static spreadsheets
+- Linear forecasts
+- Incomplete market research
+- Gut-driven executive decisions
 
-Decisions are based on linear projections and static analysis. **When the market reacts, it's already too late.**
+They **don’t simulate reality**.
+
+They fail to anticipate:
+- Competitor reactions
+- Regulatory barriers
+- Demand volatility
+- Pricing sensitivity
+- Financial downside scenarios
+
+**By the time the market responds — it’s already too late.**
 
 ---
 
 ## 💡 The Solution
 
-RiskRoom is a multi-agent system that runs probabilistic simulations before the company makes a real decision.
+RiskRoom creates a **strategic simulation environment** powered by AI agents.
 
-**It doesn't predict the future. It simulates multiple possible futures.**
+Instead of predicting a single outcome, it explores **hundreds of possible futures**.
 
-- Runs **500 Monte Carlo simulations** per scenario
-- Orchestrates **9 specialized AI agents** via Airia
-- Performs **real-time web search** for market, competitor, and regulatory data
-- Optimizes strategy before execution
-- Delivers a **Human-in-the-Loop decision point** where executives approve or reject
+- Runs **500 Monte Carlo simulations**
+- Uses **9 specialized AI agents** orchestrated via Airia
+- Integrates **real-time web intelligence**
+- Combines **internal company data + product data**
+- Produces a **Go / No-Go decision backed by data**
+- Includes a **Human-in-the-Loop (HITL)** for executive validation
+
+> It’s not a dashboard.  
+> It’s a **decision engine for high-stakes strategy**.
+
+---
+
+## 🚀 Mission
+
+Empower companies to **reduce uncertainty** and **make high-impact decisions with confidence** by simulating real-world complexity before execution.
+
+---
+
+## 🧠 Core Concept
+
+RiskRoom acts as a **digital war room** where:
+- AI agents gather intelligence
+- Simulations model uncertainty
+- Risks are quantified
+- Strategies are optimized
+- Humans make the final call
+
+---
+
+## 🏗 Architecture
 
 ---
 
@@ -66,30 +98,24 @@ REJECT  → Rejection Report + Slack + Email
 
 ---
 
-## 🤖 The 9 Airia Agents
+
+## 🤖 The 9 AI Agents
 
 | # | Agent | Model | Role |
-|---|-------|-------|------|
-| 1 | **Product Document Analyzer** | Haiku 4.5 | Reads uploaded product PDFs and extracts key data: name, features, target market, business objective |
-| 2 | **Internal Data Agent** | Haiku 4.5 | Reads company data from the database: costs, revenue, margins, historical sales, budgets |
-| 3 | **Orchestrator** | Sonnet 4.6 | Central coordinator. Receives all inputs and distributes tasks across all agents |
-| 4 | **External Intelligence** | Sonnet 4.6 | Web search via Brave MCP: market size, growth trends, competitive landscape, regulations |
-| 5 | **Pricing Optimizer** | Haiku 4.5 | Web search: real-time competitor pricing, elasticity analysis, optimal price range |
-| 6 | **Risk Analyst** | Sonnet 4.6 | Interprets Monte Carlo results + all agent outputs. Classifies risk level. Issues Go/No-Go |
-| 7 | **Mitigation Strategist** | Haiku 4.5 | Designs top 3 risk mitigation actions with cost and ROI. 90-day contingency plan |
+|---|------|------|------|
+| 1 | **Data Ingestion Agent** | Haiku 4.5 | Combines product data + company summary into structured input |
+| 2 | **Product Document Analyzer** | Haiku 4.5 | Extracts key product info from PDF (features, target, value prop) |
+| 3 | **Internal Data Agent** | Haiku 4.5 | Retrieves company metrics (costs, revenue, historical performance) |
+| 4 | **Orchestrator** | Sonnet 4.6 | Coordinates all agents and manages execution flow |
+| 5 | **Market Intelligence Agent** | Haiku 4.5 | Retrieves market size, growth, trends, and demand signals |
+| 6 | **Competitor Adversary Agent** | Haiku 4.5 | Simulates competitor reactions and identifies threats |
+| 7 | **Regulatory Risk Agent** | Haiku 4.5 | Identifies legal barriers, compliance cost, and approval timelines |
+| 8 | **Pricing Optimizer Agent** | Haiku 4.5 | Recommends optimal pricing based on market + competition |
+| 9 | **Risk Analyst Agent** | Sonnet 4.6 | Combines ALL inputs + Monte Carlo → outputs Go/No-Go |
+|10 | **Mitigation Strategist Agent** | Haiku 4.5 | Designs risk mitigation strategy and execution plan |
 
-
-
-Data Ingestion Agent
-Orchestrator Agent
-Market Intelligence Agent
-Competitor Adversary Agent
-Regulatory Risk Agent
-Pricing Optimizer
-Risk Analyst
-Mitigation Strategist Agent
-Multi-channel Output Agent
 ---
+
 
 ## 📱 App Structure — 6 Screens
 
@@ -140,15 +166,6 @@ POST /analyze
 
 ---
 
-## 🎨 Setup — Frontend (React)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open: `http://localhost:5173`
 
 **Demo credentials:**
 ```
@@ -172,19 +189,6 @@ Password: demo1234
 
 ---
 
-## 🎬 Demo Flow (4-minute video)
-
-| Time | Step |
-|------|------|
-| 0:00–0:30 | Intro: problem RiskRoom solves |
-| 0:30–1:00 | Login with demo credentials |
-| 1:00–1:45 | Configure FitPulse Pro scenario, activate Price War toggle |
-| 1:45–2:30 | RUN SIMULATION → see Monte Carlo chart, gauges, world map, Airia analysis |
-| 2:30–3:10 | OPTIMIZE STRATEGY → Strategy Comparison Table |
-| 3:10–3:40 | HITL: APPROVE EXECUTION → PDF + Slack + Email triggered |
-| 3:40–4:00 | Close: differentiators and enterprise potential |
-
----
 
 ## 🏆 Track 2: Active Agents — Requirements Coverage
 
