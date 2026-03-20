@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { C, FONT } from "./theme.js";
 import { Panel, Label, KPI, Btn, Tag } from "./components.jsx";
-import { API_BASE } from "./config.js";
-
+import { generateRiskRoomPDF } from "./pdfGenerator.js";
 // Text color tokens
 const t1 = C.t1 || "#E6EDF3";
 const t2 = C.t2 || "#A8B3C2";
@@ -30,6 +29,33 @@ const TS = {
 const fmt  = (v, d = 1) => typeof v === "number" ? v.toFixed(d) : "-";
 const fmtM = v => `$${fmt(v, 2)}M`;
 
+// Adapt new Airia format → legacy display fields
+function adapt(r) {
+  if (!r || r.metricas) return r; // already adapted or demo
+  const mc = r.monte_carlo || {};
+  const m  = r.metrics     || {};
+  const rec = r.recommendation || "REVIEW";
+  const nivelMap = { PROCEED:"BAJO", REVIEW:"MEDIO", REJECT:"ALTO" };
+  return {
+    ...r,
+    metricas: {
+      prob_exito:         mc.prob_exito         || m.probability_of_success || 0,
+      roi_esperado:       mc.roi_esperado        || 0,
+      worst_case_roi:     mc.worst_case_roi      || 0,
+      best_case_roi:      mc.best_case_roi       || 0,
+      value_at_risk:      mc.value_at_risk       || 0,
+      ingresos_esperados: mc.ingresos_esperados  || 0,
+      utilidad_esperada:  mc.utilidad_esperada   || 0,
+    },
+    analisis: {
+      nivel_riesgo:  r.analisis?.nivel_riesgo || nivelMap[rec] || "MEDIO",
+      recomendacion: r.analisis?.recomendacion || r.executive_summary || r.full_analysis || "",
+    },
+    productText: r.productText || r.projectInfo || "Product Analysis",
+    insight:     r.executive_summary || r.full_analysis || r.insight || "",
+  };
+}
+
 // Main Reports page component
 export default function ReportsPage({ user }) {
   const [reports,     setReports]     = useState([]);
@@ -39,7 +65,8 @@ export default function ReportsPage({ user }) {
   // Load saved reports from localStorage
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("rr_reports") || "[]");
-    if (saved.length === 0) {
+    const adapted = saved.map(adapt);
+    if (adapted.length === 0) {
       // Insert demo report if none exist
       const demo = [{
         analisis:    { nivel_riesgo: "MEDIO", recomendacion: "Expected ROI viable with prior regulatory mitigation." },
@@ -53,45 +80,14 @@ export default function ReportsPage({ user }) {
       setReports(demo);
       setSelected(demo[0]);
     } else {
-      setReports(saved);
-      setSelected(saved[0]);
+      setReports(adapted);
+      setSelected(adapted[0]);
     }
   }, []);
 
-  // Download PDF report
-  const downloadPDF = async () => {
+  const downloadPDF = () => {
     if (!selected) return;
-    setDownloading(true);
-    try {
-      const res = await fetch(`${API_BASE}/generate-pdf`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          metricas:     selected.metricas || {},
-          analisis:     selected.analisis || {},
-          decision:     selected.decision || "pending",
-          product_name: selected.productText?.slice(0, 50) || "Product Launch",
-          insight:      selected.insight || selected.analisis?.recomendacion || "",
-        }),
-      });
-      if (!res.ok) throw new Error(`PDF generation failed: ${res.status}`);
-      const blob = await res.blob();
-      const url  = window.URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href     = url;
-      a.download = `riskroom_report_${new Date().toISOString().slice(0,10)}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error("PDF download error:", err);
-      const msg = err.message.includes("Failed to fetch")
-        ? `Could not connect to backend. Make sure FastAPI is running on ${API_BASE}.`
-        : `Could not generate PDF: ${err.message}`;
-      alert(msg);
-    }
-    setDownloading(false);
+    generateRiskRoomPDF(selected, selected.decision || "approved");
   };
 
   return (

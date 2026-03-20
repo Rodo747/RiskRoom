@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { generateRiskRoomPDF } from "./pdfGenerator.js";
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -570,10 +571,83 @@ function RightSidebar({ m, data }) {
   );
 }
 
+// ── Adapter: maps new Airia format → legacy dashboard format ─────────────────
+function adaptData(simData) {
+  if (!simData || simData.isDemo) return DEMO;
+
+  const mc  = simData.monte_carlo || {};
+  const m   = simData.metrics     || {};
+  const sc  = simData.scenarios   || {};
+  const rf  = simData.risk_factors || [];
+  const geo = simData.geographic  || [];
+  const rec = simData.recommendation || "REVIEW";
+
+  // Map recommendation to nivel_riesgo
+  const nivelMap = { PROCEED: "BAJO", REVIEW: "MEDIO", REJECT: "ALTO" };
+
+  // Build heatmap from geographic data or generate from metrics
+  const heatmap = geo.length > 0
+    ? geo.flatMap(z => [
+        { roi: (z.opportunity_score || 5) * 10 - z.risk_score * 0.3 },
+        { roi: (z.opportunity_score || 5) * 8  - z.risk_score * 0.4 },
+        { roi: (z.opportunity_score || 5) * 6  - z.risk_score * 0.5 },
+        { roi: (z.opportunity_score || 5) * 12 - z.risk_score * 0.2 },
+        { roi: (z.opportunity_score || 5) * 9  - z.risk_score * 0.35 },
+      ])
+    : Array.from({ length: 25 }, (_, i) => ({
+        roi: (m.overall_risk_score ? 80 - m.overall_risk_score : 30) - (i % 5) * 9 - Math.floor(i / 5) * 7,
+      }));
+
+  // Build distribucion from Monte Carlo distribution
+  const distribucion = mc.distribution || Array.from({ length: 40 }, (_, i) => ({
+    roi: -40 + i * 4,
+    frecuencia: Math.round(Math.exp(-Math.pow(i - 20, 2) / 55) * 85),
+  }));
+
+  return {
+    metricas: {
+      prob_exito:         mc.prob_exito         || m.probability_of_success || 0,
+      roi_esperado:       mc.roi_esperado        || 0,
+      worst_case_roi:     mc.worst_case_roi      || 0,
+      best_case_roi:      mc.best_case_roi       || 0,
+      value_at_risk:      mc.value_at_risk       || 0,
+      ingresos_esperados: mc.ingresos_esperados  || 0,
+      utilidad_esperada:  mc.utilidad_esperada   || 0,
+      unidades_promedio:  mc.unidades_promedio   || 0,
+      std_roi:            mc.std_roi             || 0,
+      roi_mediana:        mc.roi_mediana         || mc.roi_esperado || 0,
+    },
+    analisis: {
+      nivel_riesgo:  nivelMap[rec] || "MEDIO",
+      recomendacion: simData.executive_summary || simData.full_analysis || "",
+    },
+    escenarios: {
+      optimista:  { prob: sc.optimistic?.probability   || 25, roi_promedio: mc.best_case_roi  || 0 },
+      neutral:    { prob: sc.base?.probability         || 50, roi_promedio: mc.roi_esperado   || 0 },
+      pesimista:  { prob: sc.conservative?.probability || 20, roi_promedio: mc.worst_case_roi || 0 },
+    },
+    distribucion,
+    heatmap,
+    insight:     simData.executive_summary || simData.full_analysis || "",
+    params:      { precio: simData.monte_carlo?.precio || 299 },
+    timestamp:   simData.timestamp || new Date().toISOString(),
+    isDemo:      false,
+    // Pass through new fields for HITL
+    job_id:           simData.job_id,
+    recommendation:   rec,
+    metrics:          m,
+    risk_factors:     rf,
+    geographic:       geo,
+    mitigation:       simData.mitigation || [],
+    full_analysis:    simData.full_analysis || "",
+    report_text:      simData.report_text || "",
+    airia_connected:  simData.airia_connected || false,
+  };
+}
+
 // Main page
 export default function ResultsPage({ simData, onNav }) {
-  const hasRealData = simData && !simData.isDemo;
-  const data = hasRealData ? simData : DEMO;
+  const data = adaptData(simData);
   const m    = data.metricas;
   const rc   = riskColor(data.analisis?.nivel_riesgo);
 
@@ -583,7 +657,6 @@ export default function ResultsPage({ simData, onNav }) {
   const [optData,     setOptData]     = useState(null);
   const [optimizing,  setOptimizing]  = useState(false);
   const [error,       setError]       = useState("");
-  const API_BASE = "/api";
 
   const projection = Array.from({ length: 12 }, (_,i) => ({
     month: `M${i+1}`,
@@ -603,17 +676,28 @@ export default function ResultsPage({ simData, onNav }) {
     setOptimizing(false);
   };
 
+  const saveReport = (type, msg) => {
+    const report = { ...data, decision: type, hitlMsg: msg, decisionTime: new Date().toISOString() };
+    const reports = JSON.parse(localStorage.getItem("rr_reports") || "[]");
+    reports.unshift(report);
+    localStorage.setItem("rr_reports", JSON.stringify(reports.slice(0, 20)));
+  };
+
   const handleDecision = async (type) => {
     setLoadingHITL(true);
-    try {
-      const res = await fetch(`${API_BASE}/insight`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metricas:m,nivel_riesgo:data.analisis?.nivel_riesgo,product_description:data.productText})});
-      if (!res.ok) throw new Error(`${res.status}`);
-      const j = await res.json();
-      setHitlMsg(j.insight||data.analisis?.recomendacion||"");
-    } catch {
-      setHitlMsg(type==="approved"?"Strategy approved. Roadmap activated.":"Launch rejected. Report generated.");
-      setError("⚠️ Backend connection issue. Some features may not work.");
-    }
+
+    const msg = type === "approved"
+      ? `Launch approved. Airia recommendation: ${data.recommendation}. ${data.analisis?.recomendacion || ""}`
+      : `Launch rejected. ${data.analisis?.recomendacion || "Report generated."}`;
+
+    setHitlMsg(msg);
+    saveReport(type, msg);
+
+    // Generate PDF
+    setTimeout(() => {
+      generateRiskRoomPDF({ ...data, recommendation: data.recommendation }, type);
+    }, 800);
+
     setDecision(type);
     setLoadingHITL(false);
   };
